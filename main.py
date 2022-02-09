@@ -1,6 +1,7 @@
 from random import randint
 from pathfinding import aStar
 import pygame
+# test
 
 
 class Object:
