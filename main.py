@@ -1,237 +1,188 @@
 from random import randint
 from pathfinding import aStar
+from mazeGenerator import mazeGenerator
+import time
 import pygame
-# test
+
+class Entity:
+    def __init__(self, x, y, colour, alive):
+        self.x = x
+        self.y = y
+        self.colour = colour
+        self.alive = alive
+
+    def move(self, vec):
+        self.x += vec[0]
+        self.y += vec[1]
+
+    def draw(self, screen, res):
+        pygame.draw.rect(screen, self.colour, [(self.x*res[1]/21), self.y*res[1]/21, res[1]/21, res[1]/21], 4)
 
 
 class Object:
-    def __init__(self, coord, oType):
-        self.oType = oType
-        self.coord = coord
+    def __init__(self, x, y, colour):
+        self.x = x
+        self.y = y
+        self.colour = colour
+
+    def draw(self, screen, res, fill):
+        if fill:
+            pygame.draw.rect(screen, self.colour, [(self.x*res[1]/21), self.y*res[1]/21, res[1]/21, res[1]/21], 0)
+        else:
+            pygame.draw.rect(screen, self.colour, [(self.x*res[1]/21), self.y*res[1]/21, res[1]/21, res[1]/21], 4)
+        
 
 
-class Text:
-    def __init__(self, txt, rect, color):
-        self.text = txt
-        self.rect = rect
-        self.color = color
-        surface = font.render(txt, False, color)
-        scr.blit(surface, (rect[0], rect[1]))
+def generateObjects(noTraps, noCoins):
+    coins = []
+    traps = []
+    walls = []
+    maze = mazeGenerator(21, 21)
+    for row in range(len(maze)):
+        for column in range(len(maze[row])):
+            if maze[row][column] == "1":
+                new_wall = Object(column, row, (255, 255, 255))
+                walls.append(new_wall)
+    
+    for i in range(noCoins):
+        repeat = True
+        while repeat:
+            x = randint(0, 21)
+            y = randint(0, 21)
+            repeat = False
+            for coin in coins:
+                if ([x, y] == [coin.x, coin.y]):
+                    repeat = True
+            for wall in walls:
+                if ([x, y] == [wall.x, wall.y]):
+                    repeat = True
+            if not repeat:
+                newCoin = Object(x, y, (255, 255, 0))
+                coins.append(newCoin)
 
-    def edit(self, newTxt, newRect, newColor):
-        scr.fill((200, 200, 200), self.rect)
-        surface = font.render(newTxt, False, newColor)
-        scr.blit(surface, (newRect[0], newRect[1]))
-        self.text = newTxt
-        self.rect = newRect
-        self.color = newColor
+    for i in range(noTraps):
+        repeat = True
+        while repeat:
+            x = randint(0, 21)
+            y = randint(0, 21)
+            repeat = False
+            for trap in traps:
+                if ([x, y] == [trap.x, trap.y]):
+                    repeat = True
+            if not repeat:
+                newTrap = Object(x, y, (0, 0, 0))
+                traps.append(newTrap)
 
+    return coins, traps, walls, maze
 
-def constructGrid():
-    grid = []
-    for r in range(10):
-        row = []
-        for c in range(10):
-            row.append("0")
-        grid.append(row)
-    return grid
-
-
-def display(m):
-    for i in range(10):
-        for j in range(10):
-            print(m[i][j], end=" ")
-        print(end="\n")
-
-
-def move(inputM, playerPos, grid):
-    if direction == "nil":
-        return playerPos
-    inputM = inputM.upper()
-    if inputM == "W":
-        step = [0, -1]
-    elif inputM == "A":
-        step = [-1, 0]
-    elif inputM == "D":
-        step = [1, 0]
-    elif inputM == "S":
-        step = [0, 1]
-    else:
-        step = [0, 0]
-    newPos = [playerPos[0] + step[0], playerPos[1] + step[1]]
-    if (newPos[0] <= 9) and (newPos[0] >= 0):
-        if (newPos[1] <= 9) and (newPos[1] >= 0):
-            if grid[newPos[1]][newPos[0]] != "#":
-                playerPos = newPos
-    return playerPos
-
-
-def updateMonster(playerPos, monsterPos, grid):
-    global stomped
-    step = aStar(monsterPos, playerPos, grid)
-    monsterPos = step[1]
-    color = scr.get_at((monsterPos[0]*50, (monsterPos[1]*50+200)))
-    stomped.fill(color)
-    return monsterPos
+def generateMonster(walls, coins, player):
+    repeat = True
+    while repeat:
+        x = randint(0, 21)
+        y = randint(0, 21)
+        repeat = False
+        for coin in coins:
+            if ([x, y] == [coin.x, coin.y]):
+               repeat = True
+        for wall in walls:
+            if ([x, y] == [wall.x, wall.y]):
+                repeat = True
+        if ([x, y] == [player.x, player.y]):
+            repeat = True
+        if not repeat:
+            monster = Entity(x, y, (255, 0, 0), True)
+            return monster
 
 
-def generateMonster(grid):
-    possible = []
-    for i in range(10):
-        for j in range(10):
-            if grid[j][i] == "0":
-                possible.append([i, j])
-    index = randint(0, len(possible))
-    monsterPos = possible[index]
-    return monsterPos
+def collisions(player, monster, coins, traps, money):
+    # very simplified, since coordinates are on a very static grid
+    collisions = {
+        "coins": [],
+        "traps": []
+    }
+    for coin in coins:
+        if ([player.x, player.y] == [coin.x, coin.y]):
+            collisions["coins"].append(coin)
+    for trap in traps:
+        if ([player.x, player.y] == [trap.x, trap.y]):
+            collisions["traps"].append(trap)
+    if ([player.x, player.y] == [monster.x, monster.y]):
+        player.alive = False
+
+    for coin in collisions["coins"]:
+        coins.remove(coin)
+        money += 1
+    
+    for trap in collisions["traps"]:
+        traps.remove(trap)
+        monster.alive = True
+
+def wallCollide(player, step, walls):
+    new_coord = [player.x+step[0],player.y+step[1]]
+    valid = True
+    for wall in walls:
+        if [wall.x, wall.y] == new_coord:
+            valid = False
+    return valid
+
+def monsterStep(player, monster, maze):
+    path = aStar([monster.x, monster.y], [player.x, player.y], maze)
+    print(path)
+    return path[1]
+    
+def draw(screen, res, player, monster, coins, walls):
+    for coin in coins:
+        coin.draw(screen, res, False)
+    for wall in walls:
+        wall.draw(screen, res, True)
+    player.draw(screen, res)
+    monster.draw(screen, res)
 
 
-def generateObjects(grid):
-    newObjects = []
-    possible = []
-    for i in range(10):
-        for j in range(10):
-            if grid[j][i] == "0":
-                possible.append([i, j])
-    coinTile = pygame.Surface((50, 50))
-    coinTile.fill((255, 255, 0))
+resolution = [500, 500]
+screen = pygame.display.set_mode(resolution)
 
-    trapTile = pygame.Surface((50, 50))
-    trapTile.fill((190, 190, 190))
+player = Entity(1, 1, (0, 0, 255), True)
+coins, traps, walls, maze = generateObjects(4, 4)
+monster = generateMonster(walls, coins, player)
 
-    for i in range(7):
-        coin = randint(0, (len(possible)-2))
-        possible.remove(possible[coin])
-        coord = possible[coin]
-        grid[coord[1]][coord[0]] = "C"
-        coin = Object(possible[coin], "coin")
-        newObjects.append(coin)
-        scr.blit(coinTile, ((coord[0]*50), (coord[1]*50+200)))
-    for i in range(7):
-        trap = randint(0, (len(possible)-2))
-        possible.remove(possible[trap])
-        coord = possible[trap]
-        grid[coord[1]][coord[0]] = "T"
-        trap = Object(possible[trap], "trap")
-        newObjects.append(trap)
-        scr.blit(trapTile, ((coord[0] * 50), (coord[1] * 50 + 200)))
-    return newObjects
+money = 0
 
+running = True
+while running:
+    screen.fill((0, 0, 0))
+    draw(screen, resolution, player, monster, coins, walls)
+    pygame.display.flip()
 
-def detectCollision(obj, p):
-    coin = 0
-    traps = 0
-    for i in obj:
-        if i.coord == p:
-            if i.oType == "coin":
-                coin += 1
-                obj.remove(i)
-            if i.oType == "trap":
-                traps += 1
-                obj.remove(i)
-    collision = [coin, traps]
-    return collision
+    collisions(player, monster, coins, traps, money)
 
-
-def constructWalls(wall, grid, screen):
-    for i in range(len(wall)):
-        for j in wall[i]:
-            grid[i][j] = "#"
-            surf = pygame.Surface((50, 50))
-            surf.fill((0, 0, 0))
-            screen.blit(surf, (j * 50, (i * 50)+200))
-
-
-pygame.font.init()
-font = pygame.font.SysFont("Times New Roman", 40)
-
-scr = pygame.display.set_mode([500, 700])
-scr.fill((200, 200, 200))
-coinText = Text("Coins: 0", (90, 0, 200, 40), (0, 0, 0, 0))
-
-maze = constructGrid()
-walls = [[1, 2, 3, 4, 6, 7, 8, 9],
-         [3],
-         [1, 3, 5, 7, 8, 9],
-         [1, 3],
-         [3, 5, 7],
-         [1, 7],
-         [3, 5, 6],
-         [1, 2, 3, 7],
-         [5, 6],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9]]
-constructWalls(walls, maze, scr)
-
-coins = 0
-player = [0, 0]
-maze[player[1]][player[0]] = "P"
-playerTile = pygame.Surface((50, 50))
-playerTile.fill((0, 255, 0))
-scr.blit(playerTile, (player[0]*50, (player[1]*50)+200))
-
-monster = generateMonster(maze)
-maze[monster[1]][monster[0]] = "M"
-monsterTile = pygame.Surface((50, 50))
-monsterTile.fill((255, 0, 0))
-scr.blit(monsterTile, (monster[0]*50, (monster[1]*50)+200))
-
-emptyTile = pygame.Surface((50, 50))
-emptyTile.fill((200, 200, 200))
-
-objects = generateObjects(maze)
-
-display(maze)
-stomped = pygame.Surface((50, 50))
-stomped.fill((200, 200, 200))
-alive = True
-alert = False
-
-while alive:
-
-    if monster == player:
-        alive = False
-        print("You Have Died")
+    if player.alive == False:
+        running = False
+        screen.fill((255, 0, 0))
+        pygame.display.flip()
+        time.sleep(1)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            alive = False
+            running = False
         if event.type == pygame.KEYDOWN:
-            keypress = False
-            direction = "nil"
-
+            step = [0, 0]
             if event.key == pygame.K_w:
-                direction = "W"
-                keypress = True
-            elif event.key == pygame.K_a:
-                direction = "A"
-                keypress = True
-            elif event.key == pygame.K_s:
-                direction = "S"
-                keypress = True
-            elif event.key == pygame.K_d:
-                direction = "D"
-                keypress = True
-
-            scr.blit(emptyTile, (player[0] * 50, (player[1] * 50) + 200))
-            player = move(direction, player, maze)
-            scr.blit(playerTile, (player[0] * 50, (player[1] * 50) + 200))
-
-            if alert and keypress:
-                scr.blit(stomped, (monster[0] * 50, (monster[1] * 50) + 200))
-                monster = updateMonster(player, monster, maze)
-                scr.blit(monsterTile, (monster[0] * 50, (monster[1] * 50) + 200))
-
-    pygame.display.flip()
-
-    collisions = detectCollision(objects, player)
-    if collisions[0] > 0:
-        print("Collected a Coin!")
-        coins += collisions[0]
-        coinText.edit(("Coins: "+str(coins)), coinText.rect, coinText.color)
-        if coins == 7:
-            alive = False
-            print("You Win!")
-    if collisions[1] > 0:
-        print("Triggered a Trap")
-        alert = True
+                if player.y > 0:
+                    step = [0, -1]
+            if event.key == pygame.K_s:
+                if player.y < 21:
+                    step = [0, 1]
+            if event.key == pygame.K_d:
+                if player.x < 21:
+                    step = [1, 0]
+            if event.key == pygame.K_a:
+                if player.x > 0:
+                    step = [-1, 0]
+            if monster.alive:
+                mStep = monsterStep(player, monster, maze)
+                monster.x = mStep[0]
+                monster.y = mStep[1]
+            if wallCollide(player, step, walls):
+                player.move(step)
 pygame.quit()

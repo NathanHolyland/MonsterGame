@@ -23,11 +23,11 @@ def aStar(start, end, maze):
         # generates new valid nodes
         for node in [[0, 1], [1, 0], [-1, 0], [0, -1]]:
             stepCoord = [current.coord[0] + node[0], current.coord[1] + node[1]]
-            if (stepCoord[0] < 0) or (stepCoord[0] > 9):
+            if (stepCoord[0] < 0) or (stepCoord[0] > 21):
                 continue
-            if (stepCoord[1] < 0) or (stepCoord[1] > 9):
+            if (stepCoord[1] < 0) or (stepCoord[1] > 21):
                 continue
-            if maze[stepCoord[1]][stepCoord[0]] == "#":
+            if maze[stepCoord[1]][stepCoord[0]] == "1":
                 continue
             if current.parent:
                 if current.parent.coord == stepCoord:
