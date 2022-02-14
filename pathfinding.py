@@ -27,7 +27,7 @@ def aStar(start, end, maze):
                 continue
             if (stepCoord[1] < 0) or (stepCoord[1] > 21):
                 continue
-            if maze[stepCoord[1]][stepCoord[0]] == "1":
+            if maze[stepCoord[1]][stepCoord[0]] == "1": 
                 continue
             if current.parent:
                 if current.parent.coord == stepCoord:

@@ -66,16 +66,22 @@ def generateObjects(noTraps, noCoins):
             x = randint(0, 21)
             y = randint(0, 21)
             repeat = False
+            for coin in coins:
+                if ([x, y] == [coin.x, coin.y]):
+                    repeat = True
             for trap in traps:
                 if ([x, y] == [trap.x, trap.y]):
                     repeat = True
+            for wall in walls:
+                if ([x, y] == [wall.x, wall.y]):
+                    repeat = True
             if not repeat:
-                newTrap = Object(x, y, (0, 0, 0))
+                newTrap = Object(x, y, (100, 0, 0))
                 traps.append(newTrap)
 
     return coins, traps, walls, maze
 
-def generateMonster(walls, coins, player):
+def generateMonster(walls, coins, traps, player):
     repeat = True
     while repeat:
         x = randint(0, 21)
@@ -87,10 +93,13 @@ def generateMonster(walls, coins, player):
         for wall in walls:
             if ([x, y] == [wall.x, wall.y]):
                 repeat = True
+        for trap in traps:
+            if ([x, y]) == [trap.x, trap.y]:
+                repeat = True
         if ([x, y] == [player.x, player.y]):
             repeat = True
         if not repeat:
-            monster = Entity(x, y, (255, 0, 0), True)
+            monster = Entity(x, y, (255, 0, 0), False)
             return monster
 
 
@@ -108,14 +117,11 @@ def collisions(player, monster, coins, traps, money):
             collisions["traps"].append(trap)
     if ([player.x, player.y] == [monster.x, monster.y]):
         player.alive = False
-
-    for coin in collisions["coins"]:
-        coins.remove(coin)
-        money += 1
     
     for trap in collisions["traps"]:
         traps.remove(trap)
         monster.alive = True
+    return collisions
 
 def wallCollide(player, step, walls):
     new_coord = [player.x+step[0],player.y+step[1]]
@@ -127,10 +133,11 @@ def wallCollide(player, step, walls):
 
 def monsterStep(player, monster, maze):
     path = aStar([monster.x, monster.y], [player.x, player.y], maze)
-    print(path)
     return path[1]
     
-def draw(screen, res, player, monster, coins, walls):
+def draw(screen, res, player, monster, coins, walls, traps):
+    for trap in traps:
+        trap.draw(screen, res, False)
     for coin in coins:
         coin.draw(screen, res, False)
     for wall in walls:
@@ -143,18 +150,29 @@ resolution = [500, 500]
 screen = pygame.display.set_mode(resolution)
 
 player = Entity(1, 1, (0, 0, 255), True)
-coins, traps, walls, maze = generateObjects(4, 4)
-monster = generateMonster(walls, coins, player)
+coins, traps, walls, maze = generateObjects(4, 10)
+monster = generateMonster(walls, coins, traps, player)
 
 money = 0
 
 running = True
 while running:
     screen.fill((0, 0, 0))
-    draw(screen, resolution, player, monster, coins, walls)
+    draw(screen, resolution, player, monster, coins, walls, traps)
     pygame.display.flip()
 
-    collisions(player, monster, coins, traps, money)
+    collided = collisions(player, monster, coins, traps, money)
+    
+    for coin in collided["coins"]:
+        coins.remove(coin)
+        money += 1
+
+    print(money)
+    if money > 6:
+        running = False
+        screen.fill((0, 255, 0))
+        pygame.display.flip()
+        time.sleep(1)
 
     if player.alive == False:
         running = False
