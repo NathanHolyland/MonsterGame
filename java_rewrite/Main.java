@@ -4,6 +4,7 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         Map grid = new Map(10, 10);
+        grid.generateMaze();
         boolean running = true;
         Scanner scan = new Scanner(System.in);
 
