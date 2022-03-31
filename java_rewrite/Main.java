@@ -4,10 +4,10 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         Map grid = new Map(10, 10);
-        grid.generateMaze();
+        // grid.generateMaze();
         boolean running = true;
         Scanner scan = new Scanner(System.in);
-
+        
         Game_Object player = new Game_Object(0, 0, "P", grid);
 
         while (running) {

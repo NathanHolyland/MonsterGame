@@ -27,7 +27,7 @@ public class Map {
     public void clear() {
         for (int i = 0; i < this.map.length; i++) {
             for (int j = 0; j < this.map[0].length; j++) {
-                this.map[i][j] = this.permanents[i][j];
+                this.map[i][j] = "_";
             }
         }
     }
